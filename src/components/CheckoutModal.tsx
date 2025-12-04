@@ -34,27 +34,24 @@ export default function CheckoutModal({
   total,
   onConfirm,
 }: CheckoutModalProps) {
-  const [paymentMethod, setPaymentMethod] = useState('card');
+  const [paymentMethod, setPaymentMethod] = useState('sberbank');
   const [email, setEmail] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
   const paymentMethods = [
-    { id: 'card', label: 'Банковская карта', icon: 'CreditCard' },
-    { id: 'sbp', label: 'СБП (Система Быстрых Платежей)', icon: 'Smartphone' },
-    { id: 'yoomoney', label: 'ЮMoney', icon: 'Wallet' },
-    { id: 'qiwi', label: 'QIWI Кошелек', icon: 'Wallet' },
+    { id: 'sberbank', label: 'СберБанк', icon: 'Landmark', commission: '2%', available: true },
+    { id: 'tbank', label: 'T-Bank', icon: 'Building2', commission: null, available: false },
+    { id: 'sbp', label: 'СБП', icon: 'Smartphone', commission: null, available: false },
   ];
 
   const handleConfirm = async () => {
-    if (!email) return;
+    if (!email || !paymentMethod) return;
     
     setIsProcessing(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    await new Promise((resolve) => setTimeout(resolve, 500));
     
     onConfirm(paymentMethod, email);
     setIsProcessing(false);
-    setEmail('');
-    onClose();
   };
 
   return (
@@ -132,31 +129,53 @@ export default function CheckoutModal({
               {paymentMethods.map((method) => (
                 <div
                   key={method.id}
-                  className={`flex items-center space-x-3 p-3 rounded-lg border transition-all cursor-pointer ${
+                  className={`flex items-center justify-between space-x-3 p-3 rounded-lg border transition-all ${
+                    method.available 
+                      ? 'cursor-pointer' 
+                      : 'cursor-not-allowed opacity-60'
+                  } ${
                     paymentMethod === method.id
                       ? 'border-primary bg-primary/5 glow-primary'
                       : 'border-border/50 hover:border-primary/30'
                   }`}
-                  onClick={() => setPaymentMethod(method.id)}
+                  onClick={() => method.available && setPaymentMethod(method.id)}
                 >
-                  <RadioGroupItem value={method.id} id={method.id} />
-                  <Label
-                    htmlFor={method.id}
-                    className="flex items-center gap-3 cursor-pointer flex-1"
-                  >
-                    <div className={`p-2 rounded-md ${
-                      paymentMethod === method.id
-                        ? 'bg-primary/20'
-                        : 'bg-muted'
-                    }`}>
-                      <Icon
-                        name={method.icon as any}
-                        size={20}
-                        className={paymentMethod === method.id ? 'text-primary' : ''}
-                      />
-                    </div>
-                    <span className="font-medium">{method.label}</span>
-                  </Label>
+                  <div className="flex items-center space-x-3">
+                    <RadioGroupItem 
+                      value={method.id} 
+                      id={method.id} 
+                      disabled={!method.available}
+                    />
+                    <Label
+                      htmlFor={method.id}
+                      className="flex items-center gap-3 cursor-pointer"
+                    >
+                      <div className={`p-2 rounded-md ${
+                        paymentMethod === method.id
+                          ? 'bg-primary/20'
+                          : 'bg-muted'
+                      }`}>
+                        <Icon
+                          name={method.icon as any}
+                          size={20}
+                          className={paymentMethod === method.id ? 'text-primary' : ''}
+                        />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{method.label}</span>
+                        {method.commission && (
+                          <span className="text-xs text-orange-500">
+                            Комиссия {method.commission}
+                          </span>
+                        )}
+                      </div>
+                    </Label>
+                  </div>
+                  {!method.available && (
+                    <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+                      Скоро
+                    </span>
+                  )}
                 </div>
               ))}
             </RadioGroup>
@@ -171,12 +190,16 @@ export default function CheckoutModal({
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-muted-foreground">Комиссия:</span>
-              <span className="text-green-500">0 ₽</span>
+              <span className={paymentMethod === 'sberbank' ? 'text-orange-500' : 'text-green-500'}>
+                {paymentMethod === 'sberbank' ? `${(total * 0.02).toFixed(2)} ₽ (2%)` : '0 ₽'}
+              </span>
             </div>
             <Separator />
             <div className="flex justify-between text-lg font-bold">
               <span>Итого к оплате:</span>
-              <span className="text-primary text-2xl">{total} ₽</span>
+              <span className="text-primary text-2xl">
+                {paymentMethod === 'sberbank' ? (total * 1.02).toFixed(2) : total} ₽
+              </span>
             </div>
           </div>
         </div>
@@ -195,7 +218,7 @@ export default function CheckoutModal({
             ) : (
               <>
                 <Icon name="CheckCircle" size={20} className="mr-2" />
-                Оплатить {total} ₽
+                Оплатить {paymentMethod === 'sberbank' ? (total * 1.02).toFixed(2) : total} ₽
               </>
             )}
           </Button>
